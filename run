@@ -1,0 +1,4 @@
+#!/bin/sh
+PATH=$PATH:`pwd`/bin
+export PATH
+exec sh
