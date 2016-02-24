@@ -26,6 +26,8 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <time.h>
+#include <grp.h>
+#include <pwd.h>
 
 typedef const char* string_t;
 typedef const string_t* argv_t;
@@ -44,6 +46,10 @@ int opt_nogroup=0;
 int opt_nouser=0;
 int opt_stream = 0;
 int opt_inode = 0;
+int opt_ctime = 0;
+int opt_atime = 0;
+int opt_folloflink = 0;
+int opt_ugid_asnum = 0;
 
 static void
 parse(int argc,argv_t argv){
@@ -60,10 +66,14 @@ parse(int argc,argv_t argv){
 			switch(*cur){
 				caseof('a',opt_all = 1)
 				caseof('l',opt_l = 1)
-				caseof('o',opt_nogroup = 1)
-				caseof('g',opt_nouser = 1)
+				caseof('o',opt_nogroup = 1; opt_l = 1)
+				caseof('g',opt_nouser = 1; opt_l = 1)
+				caseof('n',opt_ugid_asnum = 1; opt_l = 1)
 				caseof('m',opt_stream = 1)
 				caseof('i',opt_inode = 1)
+				caseof('c',opt_ctime = 1)
+				caseof('u',opt_atime = 1)
+				caseof('H',opt_folloflink = 1)
 			}
 		}
 	}
@@ -84,11 +94,25 @@ static char t2c(unsigned char t){
 }
 
 static string_t uidgid(struct stat *sb){
+	struct group *gr;
+	struct passwd *pw;
 	int n=0;
+	static char name[128];
 	static char parts[1000];
 	parts[0]=0;
-	if(!opt_nogroup) n+=snprintf(parts,1000,"%6d ",(int)sb->st_uid);
-	if(!opt_nouser) snprintf(parts+n,1000+n,"%6d",(int)sb->st_gid);
+	if(opt_ugid_asnum){
+		if(!opt_nouser) n+=snprintf(parts,1000,"%6d ",(int)sb->st_uid);
+		if(!opt_nogroup) snprintf(parts+n,1000+n,"%6d",(int)sb->st_gid);
+	}else{
+		if(!opt_nouser){
+			pw = getpwuid(sb->st_uid);
+			n+=snprintf(parts,1000,"%s ",pw?pw->pw_name:"");
+		}
+		if(!opt_nogroup){
+			gr = getgrgid(sb->st_gid);
+			snprintf(parts+n,1000+n,"%s",gr?gr->gr_name:"");
+		}
+	}
 	return parts;
 }
 static string_t fdate(time_t t){
@@ -111,7 +135,7 @@ static void printout(struct dirent *de){
 	struct stat sb;
 	#define DOSTAT \
 		sprintf(buffer,"%s/%s",curdir,de->d_name); \
-		stat(buffer,&sb);
+		if(opt_folloflink)lstat(buffer,&sb);else stat(buffer,&sb);
 	if(de->d_name[0]=='.'&&!opt_all)return;
 	if(opt_l){
 		DOSTAT
@@ -133,7 +157,7 @@ static void printout(struct dirent *de){
 
 			(int)sb.st_size,
 
-			fdate(sb.st_mtime),
+			fdate(opt_ctime?sb.st_ctime:opt_atime?sb.st_atime:sb.st_mtime),
 			de->d_name);
 		return;
 	}
