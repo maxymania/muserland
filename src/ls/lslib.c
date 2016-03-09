@@ -76,6 +76,7 @@ static const char* uid2n(uid_t uid){
 	i = next_p;
 	next_p = (next_p+1)%NCACHE;
 	pwdcache[i].id=uid;
+	if(pwdcache[i].name)free((void*)pwdcache[i].name);
 	if(pw){
 		char* name = malloc(strlen(pw->pw_name));
 		strcpy(name,pw->pw_name);
@@ -95,6 +96,7 @@ static const char* gid2n(uid_t gid){
 	i = next_g;
 	next_g = (next_g+1)%NCACHE;
 	grpcache[i].id=gid;
+	if(grpcache[i].name)free((void*)grpcache[i].name);
 	if(gr){
 		char* name = malloc(strlen(gr->gr_name));
 		strcpy(name,gr->gr_name);
