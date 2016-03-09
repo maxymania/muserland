@@ -8,6 +8,6 @@ src += main.o
 src += lslib.o
 
 a.out: $(src)
-	$(C) $? -o $@
+	$(L) $? -o $@
 
 
