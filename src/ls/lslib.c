@@ -66,19 +66,32 @@ static struct grpinfo grpcache[NCACHE];
 static struct grpinfo pwdcache[NCACHE];
 
 static int next_p,next_g;
+static string_t proot=NULL,groot=NULL;
 
 static const char* uid2n(uid_t uid){
-	if(uid==0) return "root"; // TODO: getpwuid for that;
+	struct passwd *pw;
+	char* name;
+	if(uid==0){
+		if(!proot){
+			pw = getpwuid(uid);
+			if(pw){
+				name = malloc(strlen(pw->pw_name));
+				strcpy(name,pw->pw_name);
+				proot = name;
+			}else proot = "root";
+		}
+		return proot;
+	}
 	int i;
 	for(i=0;i<NCACHE;++i)
 		if(pwdcache[i].id==uid)return pwdcache[i].name;
-	struct passwd *pw = getpwuid(uid);
+	pw = getpwuid(uid);
 	i = next_p;
 	next_p = (next_p+1)%NCACHE;
 	pwdcache[i].id=uid;
 	if(pwdcache[i].name)free((void*)pwdcache[i].name);
 	if(pw){
-		char* name = malloc(strlen(pw->pw_name));
+		name = malloc(strlen(pw->pw_name));
 		strcpy(name,pw->pw_name);
 		pwdcache[i].name = name;
 	}else{
@@ -88,17 +101,29 @@ static const char* uid2n(uid_t uid){
 }
 
 static const char* gid2n(uid_t gid){
-	if(gid==0) return "root"; // TODO: getgrgid for that;
+	struct group *gr;
+	char* name;
+	if(gid==0){
+		if(!groot){
+			gr = getgrgid(gid);
+			if(gr){
+				name = malloc(strlen(gr->gr_name));
+				strcpy(name,gr->gr_name);
+				groot = name;
+			}else groot = "root";
+		}
+		return groot;
+	}
 	int i;
 	for(i=0;i<NCACHE;++i)
 		if(grpcache[i].id==gid)return grpcache[i].name;
-	struct group *gr = getgrgid(gid);
+	gr = getgrgid(gid);
 	i = next_g;
 	next_g = (next_g+1)%NCACHE;
 	grpcache[i].id=gid;
 	if(grpcache[i].name)free((void*)grpcache[i].name);
 	if(gr){
-		char* name = malloc(strlen(gr->gr_name));
+		name = malloc(strlen(gr->gr_name));
 		strcpy(name,gr->gr_name);
 		grpcache[i].name = name;
 	}else{
