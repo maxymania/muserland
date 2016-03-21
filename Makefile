@@ -21,7 +21,7 @@
 include generic.mk
 
 tools += bin/ls bin/yes bin/chgrp bin/chown bin/echo bin/kill bin/sleep bin/cat
-tools += bin/ln bin/cp bin/mkdir bin/mknod
+tools += bin/ln bin/cp bin/mkdir bin/mknod bin/mv
 
 allofit: $(tools)
 	echo done

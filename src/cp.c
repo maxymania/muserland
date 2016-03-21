@@ -36,12 +36,27 @@ int main(int argc,const string_t* argv){
 	struct stat statbuf;
 	if(argc<3)
 		goto printhowto;
-	if(stat(argv[argc-1],&statbuf))
-		goto printhowto;
-	if(S_ISDIR(statbuf.st_mode))
-		goto copydir;
-	if(argc>3)
-		goto printhowto;
+	if(stat(argv[argc-1],&statbuf)){
+		/*
+		 * The destination file/dir does not exist.
+		 */
+		if(argc>3)
+			goto printhowto;
+	}else{
+		/*
+		 * The destination file/dir does exist.
+		 */
+		if(S_ISDIR(statbuf.st_mode))
+			/*
+			 * The destination is a directory.
+			 */
+			goto copydir;
+		if(!(S_ISFILE(statbuf.st_mode))
+			/*
+			* If the destination is not a directory, fail.
+			*/
+			goto printhowto;
+	}
 	return copy_file(argv[1],argv[2]);
 copydir:
 	status = 0;
@@ -50,7 +65,7 @@ copydir:
 			status = 1;
 	return status;
 printhowto:
-	fprintf(stderr,"Usage: cp from-file dest-file; or cp file1 ... fileN dest-dir\n");
+	fprintf(stderr,"Usage: cp from-file-or-dir dest-name; or cp file1 ... fileN dest-dir\n");
 	return 1;
 }
 
