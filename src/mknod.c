@@ -20,61 +20,52 @@
  * SOFTWARE.
  */
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/stat.h>
-#include <libgen.h>
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 typedef const char* string_t;
 
-#define bnm(x) (string_t)basename((char*)x)
-int copy_file(string_t from, string_t to);
-int copy_dir(string_t from, string_t to);
-char buffer[4096];
+void nothing(){};
+
+int deNum(string_t s){
+	int i=0;
+	reloop:
+	if(*s<'0')return -1;
+	if(*s>'9')return -1;
+	i*=10;
+	i+=(*s)-'0';
+	if(!*s)return i;
+	goto reloop;
+}
+#define caseof(v,c) case v:c;break;
+#define FA |0666
 
 int main(int argc,const string_t* argv){
-	int status,i;
-	struct stat statbuf;
-	if(argc<3)
-		goto printhowto;
-	if(stat(argv[argc-1],&statbuf))
-		goto printhowto;
-	if(S_ISDIR(statbuf.st_mode))
-		goto copydir;
-	if(argc>3)
-		goto printhowto;
-	return copy_file(argv[1],argv[2]);
-copydir:
-	status = 0;
-	for(i=1;i<argc-1;++i)
-		if(copy_dir(argv[i],argv[argc-1]))
-			status = 1;
-	return status;
-printhowto:
-	fprintf(stderr,"Usage: cp from-file dest-file; or cp file1 ... fileN dest-dir\n");
+	int a,b;
+	mode_t mode;
+	dev_t  dev;
+	if(argc!=5)goto usage;
+	switch(*(argv[2])){
+	caseof('b',mode = S_IFBLK FA)
+	caseof('c',mode = S_IFCHR FA)
+	caseof('p',mode = S_IFIFO FA)
+	caseof('-',mode = S_IFREG FA)
+	default:
+		/* keep compiler happy! */
+		nothing();
+		goto usage;
+	}
+	a = deNum(argv[3]);
+	b = deNum(argv[4]);
+	if((a<0)||(b<0))goto usage;
+	dev = (a<<8)|b;
+	if(mknod(argv[1],mode,dev)<0)
+		perror("mknod");
+	return 0;
+usage:
+	printf("Usage: mknod filename b/c major minor\n");
 	return 1;
 }
 
-int copy_dir(string_t from, string_t to){
-	if(snprintf(buffer,sizeof buffer,"%s/%s",to,bnm(from))<1)return 1;
-	return copy_file(from,buffer);
-}
-
-int copy_file(string_t from, string_t to){
-	int n;
-	int src = open(from,O_RDONLY);
-	if(src<0)return 1;
-	int dst = open(to,O_WRONLY|O_CREAT);
-	if(dst<0){
-		close(src);
-		return 1;
-	}
-	for(;;){
-		n = read(src,buffer,sizeof buffer);
-		if(n<1)break;
-		write(dst,buffer,n);
-	}
-	close(src);
-	close(dst);
-	return 0;
-}
 
