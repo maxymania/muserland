@@ -31,6 +31,15 @@ int copy_file(string_t from, string_t to);
 int copy_dir(string_t from, string_t to);
 char buffer[4096];
 
+
+// #ifndef S_ISDIR
+// #ifdef S_ISFILE
+// #define S_ISDIR S_ISFILE
+// #else
+// #error "No S_ISDIR, No S_ISFILE"
+// #endif
+// #endif
+
 int main(int argc,const string_t* argv){
 	int status,i;
 	struct stat statbuf;
@@ -51,10 +60,10 @@ int main(int argc,const string_t* argv){
 			 * The destination is a directory.
 			 */
 			goto copydir;
-		if(!(S_ISFILE(statbuf.st_mode))
+		else /*if(!(S_ISREG(statbuf.st_mode)))*/
 			/*
-			* If the destination is not a directory, fail.
-			*/
+			 * If the destination is not a directory, fail.
+			 */
 			goto printhowto;
 	}
 	return copy_file(argv[1],argv[2]);
