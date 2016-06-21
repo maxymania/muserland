@@ -31,16 +31,18 @@ int copy_object(string_t from, string_t to);
 int copy_link(string_t from, string_t to);
 int copy_file(string_t from, string_t to);
 int copy_dir(string_t from, string_t to);
-char buffer[4096];
 
+char buffer[4096];
 char buffer2[4096];
-// #ifndef S_ISDIR
-// #ifdef S_ISFILE
-// #define S_ISDIR S_ISFILE
-// #else
-// #error "No S_ISDIR, No S_ISFILE"
-// #endif
-// #endif
+
+
+#ifndef S_ISDIR
+#ifdef S_ISFILE
+#define S_ISDIR S_ISFILE
+#else
+#error "No S_ISDIR, No S_ISFILE"
+#endif
+#endif
 
 int main(int argc,const string_t* argv){
 	int status,i;
