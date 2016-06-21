@@ -27,11 +27,13 @@
 typedef const char* string_t;
 
 #define bnm(x) (string_t)basename((char*)x)
+int copy_object(string_t from, string_t to);
+int copy_link(string_t from, string_t to);
 int copy_file(string_t from, string_t to);
 int copy_dir(string_t from, string_t to);
 char buffer[4096];
 
-
+char buffer2[4096];
 // #ifndef S_ISDIR
 // #ifdef S_ISFILE
 // #define S_ISDIR S_ISFILE
@@ -66,7 +68,7 @@ int main(int argc,const string_t* argv){
 			 */
 			goto printhowto;
 	}
-	return copy_file(argv[1],argv[2]);
+	return copy_object(argv[1],argv[2]);
 copydir:
 	status = 0;
 	for(i=1;i<argc-1;++i)
@@ -80,7 +82,28 @@ printhowto:
 
 int copy_dir(string_t from, string_t to){
 	if(snprintf(buffer,sizeof buffer,"%s/%s",to,bnm(from))<1)return 1;
-	return copy_file(from,buffer);
+	return copy_object(from,buffer);
+}
+
+int copy_object(string_t from, string_t to){
+	struct stat statbuf;
+	if(stat(from,&statbuf)) return 1;
+	if(S_ISDIR (statbuf.st_mode)) { printf("cp: directory ``%s'' was skipped\n",from); return 1; }
+	if(S_ISSOCK(statbuf.st_mode)) { printf("cp: socket ``%s'' was skipped\n",from); return 1; }
+	if(S_ISFIFO(statbuf.st_mode)) { printf("cp: named pipe ``%s'' was skipped\n",from); return 1; }
+	if(S_ISBLK (statbuf.st_mode)) { printf("cp: block device ``%s'' was skipped\n",from); return 1; }
+	if(S_ISCHR (statbuf.st_mode)) { printf("cp: char device ``%s'' was skipped\n",from); return 1; }
+	if(S_ISLNK (statbuf.st_mode)) return copy_link(from,to);
+	if(S_ISREG (statbuf.st_mode)) return copy_file(from,to);
+	printf("cp: special file ``%s'' was skipped\n",from);
+	return 1;
+}
+
+int copy_link(string_t from, string_t to){
+	ssize_t len = readlink(from,buffer2,sizeof(buffer2)-1);
+	if(len<0)return 1;
+	buffer2[len]=0;
+	return symlink(buffer2,to);
 }
 
 int copy_file(string_t from, string_t to){
@@ -101,4 +124,5 @@ int copy_file(string_t from, string_t to){
 	close(dst);
 	return 0;
 }
+
 
